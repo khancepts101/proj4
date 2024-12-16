@@ -109,7 +109,7 @@ st.title("Movie Recommender System")
 st.subheader("Step 1: Rate Movies")
 st.write("Rate as many movies as you can to improve recommendations.")
 
-num_movies_to_display = 40
+num_movies_to_display = 75
 popularity_df = compute_popularity_df(rating_matrix)
 
 
