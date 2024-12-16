@@ -93,7 +93,7 @@ st.title("Movie Recommender System")
 st.subheader("Step 1: Rate Movies")
 st.write("Rate as many movies as you can to improve recommendations.")
 
-num_movies_to_display = 100
+num_movies_to_display = 40
 ratings_filled = rating_matrix.fillna(0)
 movie_rating_counts = ratings_filled.astype(bool).sum(axis=0)
 movie_avg_ratings = rating_matrix.mean(axis=0, skipna=True)
