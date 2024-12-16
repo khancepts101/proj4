@@ -3,13 +3,11 @@ import pandas as pd
 import numpy as np
 import os
 
-# File paths
 images_folder = './MovieImages'
 movies_file_path = './ml-1m/movies.dat'
 ratings_file_path = './Rmat.csv'
 similarity_matrix_path = './adjusted_similarity_matrix.csv'
 
-# Load data
 movies_df = pd.read_csv(
     movies_file_path,
     sep='::',
@@ -19,21 +17,19 @@ movies_df = pd.read_csv(
 )
 
 rating_matrix = pd.read_csv(ratings_file_path)
+star_ratings = ["★☆☆☆☆", "★★☆☆☆", "★★★☆☆", "★★★★☆", "★★★★★"]
 S_adjusted = pd.read_csv(similarity_matrix_path, index_col=0)
-# Create a popularity ranking DataFrame
 movie_rating_counts = rating_matrix.astype(bool).sum(axis=0)
 popularity_df = pd.DataFrame({
     "MovieID": rating_matrix.columns,
     "RatingCount": movie_rating_counts
 }).sort_values(by="RatingCount", ascending=False)
 
-# Helper function: Fetch poster image
 def get_image_path(movie_id):
     image_file = f"{movie_id}.jpg"
     image_path = os.path.join(images_folder, image_file)
     return image_path if os.path.exists(image_path) else None
 
-# myIBCF function
 def myIBCF(newuser, similarity_matrix, rating_matrix, popularity_df, top_k=10):
     newuser = np.array(newuser)
     
@@ -92,14 +88,12 @@ def myIBCF(newuser, similarity_matrix, rating_matrix, popularity_df, top_k=10):
     return recommended_movies
 
 
-# Streamlit UI
 st.title("Movie Recommender System")
 
-# Step 1: Display movies for rating
 st.subheader("Step 1: Rate Movies")
 st.write("Rate as many movies as you can to improve recommendations.")
 
-num_movies_to_display = 15
+num_movies_to_display = 100
 ratings_filled = rating_matrix.fillna(0)
 movie_rating_counts = ratings_filled.astype(bool).sum(axis=0)
 movie_avg_ratings = rating_matrix.mean(axis=0, skipna=True)
@@ -121,7 +115,6 @@ popular_movies = pd.merge(
 )
 movies_to_display = popular_movies
 
-# Collect ratings from users
 user_ratings = {}
 
 num_columns = 5
@@ -133,22 +126,24 @@ for row in rows:
         with col:
             image_path = get_image_path(movie['MovieID'])
             if image_path:
-                st.image(image_path, caption=movie['Title'], width=150)
+                st.image(image_path, width=150)
+                st.markdown(f"<div style=\"text-align:center; font-size:9px;\">{movie['Title']}</div>", unsafe_allow_html=True)
             else:
-                st.write(movie['Title'])  # Fallback if no image is available
+                st.write(movie['Title'])
 
-            # Display genres
             st.markdown(
-                f"<span style='font-size:12px; color:gray;'>{movie['Genres']}</span>",
+                f"<span style='font-size:9px; color:gray;'>{movie['Genres']}</span>",
                 unsafe_allow_html=True
             )
 
-            # Capture user rating
-            rating = st.slider(
-                "Rate the movie!", 0, 5, 0,
+            rating = st.radio(
+                "Select a rating",
+                options=[1, 2, 3, 4, 5],
+                format_func=lambda x: star_ratings[x - 1],
+                index=None,
                 key=f"rating_{movie['MovieID']}"
             )
-            user_ratings[movie['MovieID']] = rating if rating > 0 else np.nan
+            user_ratings[movie['MovieID']] = rating if rating is not None and rating > 0 else np.nan
 
 st.subheader("Step 2: Discover Movies You Might Like")
 if st.button("Get Recommendations"):
@@ -165,4 +160,18 @@ if st.button("Get Recommendations"):
     for _, row in recommendations.iterrows():
         movie_details = movies_df[movies_df['MovieID'] == row['MovieID'].lstrip('m')]
         if not movie_details.empty:
-            st.write(f"🎬 **{movie_details.iloc[0]['Title']}** (Predicted Rating: {row['PredictedRating']:.2f})")
+            title = movie_details.iloc[0]['Title']
+            predicted_rating = row['PredictedRating']
+            movie_id = row['MovieID']
+
+            image_path = get_image_path(movie_id.lstrip('m'))
+            
+            col1, col2 = st.columns([1, 3])
+            with col1:
+                if image_path:
+                    st.image(image_path, width=120)
+                else:
+                    st.write("📷 Image not available")
+            with col2:
+                st.write(f"🎬 **{title}**")
+                st.write(f"⭐ Predicted Rating: **{predicted_rating:.2f}**")
