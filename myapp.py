@@ -8,22 +8,38 @@ movies_file_path = './ml-1m/movies.dat'
 ratings_file_path = './Rmat.csv'
 similarity_matrix_path = './adjusted_similarity_matrix.csv'
 
-movies_df = pd.read_csv(
-    movies_file_path,
-    sep='::',
-    engine='python',
-    names=['MovieID', 'Title', 'Genres'],
-    encoding='ISO-8859-1'
-)
+@st.cache_data
+def load_movies():
+    return pd.read_csv(
+        movies_file_path,
+        sep='::',
+        engine='python',
+        names=['MovieID', 'Title', 'Genres'],
+        encoding='ISO-8859-1'
+    )
+@st.cache_data
+def load_rating_matrix():
+    return pd.read_csv(ratings_file_path)
+@st.cache_data
+def load_similarity_matrix():
+    return pd.read_csv(similarity_matrix_path, index_col=0)
+@st.cache_data
+def compute_popularity_df(rating_matrix):
+    ratings_filled = rating_matrix.fillna(0)
+    movie_rating_counts = ratings_filled.astype(bool).sum(axis=0)
+    movie_avg_ratings = rating_matrix.mean(axis=0, skipna=True)
+    return pd.DataFrame({
+        "MovieID": rating_matrix.columns,
+        "RatingCount": movie_rating_counts,
+        "AverageRating": movie_avg_ratings
+    }).sort_values(by=["RatingCount", "AverageRating"], ascending=[False, False])
+movies_df = load_movies()
+rating_matrix = load_rating_matrix()
 
-rating_matrix = pd.read_csv(ratings_file_path)
 star_ratings = ["★☆☆☆☆", "★★☆☆☆", "★★★☆☆", "★★★★☆", "★★★★★"]
-S_adjusted = pd.read_csv(similarity_matrix_path, index_col=0)
+S_adjusted = load_similarity_matrix()
 movie_rating_counts = rating_matrix.astype(bool).sum(axis=0)
-popularity_df = pd.DataFrame({
-    "MovieID": rating_matrix.columns,
-    "RatingCount": movie_rating_counts
-}).sort_values(by="RatingCount", ascending=False)
+popularity_df = compute_popularity_df(rating_matrix)
 
 def get_image_path(movie_id):
     image_file = f"{movie_id}.jpg"
@@ -94,18 +110,10 @@ st.subheader("Step 1: Rate Movies")
 st.write("Rate as many movies as you can to improve recommendations.")
 
 num_movies_to_display = 40
-ratings_filled = rating_matrix.fillna(0)
-movie_rating_counts = ratings_filled.astype(bool).sum(axis=0)
-movie_avg_ratings = rating_matrix.mean(axis=0, skipna=True)
-popularity_df = pd.DataFrame({
-    "MovieID": rating_matrix.columns,
-    "RatingCount": movie_rating_counts,
-    "AverageRating": movie_avg_ratings
-}).sort_values(by=["RatingCount", "AverageRating"], ascending=[False, False])
+popularity_df = compute_popularity_df(rating_matrix)
 
 
-popularity_df['MovieID'] = popularity_df['MovieID'].str.lstrip('m')
-popularity_df['MovieID'] = popularity_df['MovieID'].astype(str)
+popularity_df['MovieID'] = popularity_df['MovieID'].str.lstrip('m').astype(str)
 movies_df['MovieID'] = movies_df['MovieID'].astype(str)
 popular_movies = pd.merge(
     popularity_df.head(num_movies_to_display),
