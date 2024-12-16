@@ -152,8 +152,14 @@ if st.button("Get Recommendations"):
     user_ratings_vector = [np.nan] * rating_matrix.shape[1]
     for movie_id, rating in user_ratings.items():
         if not pd.isna(rating):
-            user_index = int(movie_id) - 1 
-            user_ratings_vector[user_index] = rating
+            try:
+                user_index = int(movie_id) - 1
+                if 0 <= user_index < len(user_ratings_vector): 
+                    user_ratings_vector[user_index] = rating
+                else:
+                    print(f"MovieID {movie_id} is out of range and will be skipped.")
+            except ValueError:
+                print(f"Invalid MovieID {movie_id}. Skipping...")
 
     recommendations = myIBCF(user_ratings_vector, S_adjusted, rating_matrix, popularity_df)
     st.write("Here are the top 10 movies we recommend for you:")
