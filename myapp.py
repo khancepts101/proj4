@@ -188,4 +188,5 @@ if st.button("Get Recommendations"):
                     st.write("📷 Image not available")
             with col2:
                 st.write(f"🎬 **{title}**")
-                st.write(f"⭐ Predicted Rating: **{predicted_rating:.2f}**")
+                if(predicted_rating is not None):
+                    st.write(f"⭐ Predicted Rating: **{predicted_rating:.2f}**")
